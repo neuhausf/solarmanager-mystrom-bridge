@@ -121,6 +121,39 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
         )
 
+        # Synchronize the virtual device relay when the controlled HA entity changes.
+        async def _on_controlled_entity_changed(event) -> None:
+            nonlocal _previous_relay
+            new_state = event.data.get("new_state")
+            if new_state is None or new_state.state in (
+                None,
+                "unavailable",
+                "unknown",
+            ):
+                return
+            relay_on = new_state.state not in ("off", "false", "0")
+            # Skip if this matches the state we already set (prevents feedback loop).
+            if relay_on == _previous_relay:
+                return
+            # Update _previous_relay BEFORE the await so that any concurrent listener
+            # invocation (asyncio is cooperative; no actual parallelism here) sees the
+            # new value and skips the redundant relay call.
+            _previous_relay = relay_on
+            _LOGGER.debug(
+                "Controlled entity %s changed to %s – setting relay on %s to %s",
+                controlled_entity_id,
+                new_state.state,
+                host,
+                relay_on,
+            )
+            await coordinator.async_set_relay(relay_on)
+
+        entry.async_on_unload(
+            async_track_state_change_event(
+                hass, [controlled_entity_id], _on_controlled_entity_changed
+            )
+        )
+
     return True
 
 
