@@ -20,7 +20,7 @@ from homeassistant.helpers.selector import (
     TextSelector,
 )
 
-from .const import CONF_CONTROLLED_ENTITY_ID, CONF_POWER_ENTITY_ID, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import CONF_CONTROLLED_ENTITY_ID, CONF_POWER_ENTITY_ID, CONF_TEMPERATURE_ENTITY_ID, DEFAULT_SCAN_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -94,6 +94,12 @@ class SolarManagerMyStromBridgeConfigFlow(
             if power_entity_id:
                 data[CONF_POWER_ENTITY_ID] = power_entity_id
 
+            temperature_entity_id = (
+                user_input.get(CONF_TEMPERATURE_ENTITY_ID) or ""
+            ).strip()
+            if temperature_entity_id:
+                data[CONF_TEMPERATURE_ENTITY_ID] = temperature_entity_id
+
             controlled_entity_id = (
                 user_input.get(CONF_CONTROLLED_ENTITY_ID) or ""
             ).strip()
@@ -115,6 +121,9 @@ class SolarManagerMyStromBridgeConfigFlow(
                         )
                     ),
                     vol.Optional(CONF_POWER_ENTITY_ID): EntitySelector(
+                        EntitySelectorConfig(domain=["sensor"])
+                    ),
+                    vol.Optional(CONF_TEMPERATURE_ENTITY_ID): EntitySelector(
                         EntitySelectorConfig(domain=["sensor"])
                     ),
                 }
@@ -149,6 +158,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             # Strip empty entities
             if not (user_input.get(CONF_POWER_ENTITY_ID) or "").strip():
                 user_input.pop(CONF_POWER_ENTITY_ID, None)
+            if not (user_input.get(CONF_TEMPERATURE_ENTITY_ID) or "").strip():
+                user_input.pop(CONF_TEMPERATURE_ENTITY_ID, None)
             if not (user_input.get(CONF_CONTROLLED_ENTITY_ID) or "").strip():
                 user_input.pop(CONF_CONTROLLED_ENTITY_ID, None)
             return self.async_create_entry(title="", data=user_input)
@@ -163,6 +174,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             CONF_POWER_ENTITY_ID,
             self._config_entry.data.get(CONF_POWER_ENTITY_ID, ""),
         )
+        current_temperature_entity = self._config_entry.options.get(
+            CONF_TEMPERATURE_ENTITY_ID,
+            self._config_entry.data.get(CONF_TEMPERATURE_ENTITY_ID, ""),
+        )
         current_controlled_entity = self._config_entry.options.get(
             CONF_CONTROLLED_ENTITY_ID,
             self._config_entry.data.get(CONF_CONTROLLED_ENTITY_ID, ""),
@@ -171,7 +186,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         controlled_selector = EntitySelector(
             EntitySelectorConfig(domain=["switch", "input_boolean", "light"])
         )
-        power_selector = EntitySelector(EntitySelectorConfig(domain=["sensor"]))
+        sensor_selector = EntitySelector(EntitySelectorConfig(domain=["sensor"]))
 
         schema: dict = {
             vol.Optional(
@@ -191,7 +206,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             vol.Optional(
                 CONF_POWER_ENTITY_ID,
                 **({"default": current_power_entity} if current_power_entity else {}),
-            ): power_selector,
+            ): sensor_selector,
+            vol.Optional(
+                CONF_TEMPERATURE_ENTITY_ID,
+                **({"default": current_temperature_entity} if current_temperature_entity else {}),
+            ): sensor_selector,
         }
 
         return self.async_show_form(

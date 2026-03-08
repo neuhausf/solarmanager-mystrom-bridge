@@ -60,6 +60,18 @@ class MyStromBridgeCoordinator(DataUpdateCoordinator):
         except aiohttp.ClientError as err:
             _LOGGER.error("Failed to set relay on %s: %s", self.host, err)
 
+    async def async_set_temperature(self, temperature: float) -> None:
+        """POST current temperature (°C) to the virtual MyStrom /temperature endpoint."""
+        try:
+            async with self._session.post(
+                f"{self._base_url}/temperature",
+                json={"temperature": temperature},
+                timeout=aiohttp.ClientTimeout(total=5),
+            ) as resp:
+                resp.raise_for_status()
+        except aiohttp.ClientError as err:
+            _LOGGER.error("Failed to post temperature to %s: %s", self.host, err)
+
     async def async_set_power(self, power: float) -> None:
         """POST current power (W) to the virtual MyStrom /power endpoint."""
         try:

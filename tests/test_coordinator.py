@@ -90,6 +90,24 @@ async def test_coordinator_set_relay_off(hass):
 
 
 @pytest.mark.asyncio
+async def test_coordinator_set_temperature(hass):
+    """async_set_temperature posts to /temperature with correct JSON body."""
+    from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+    session = async_get_clientsession(hass)
+    coordinator = MyStromBridgeCoordinator(hass, session, HOST, scan_interval=5)
+
+    with aioresponses() as mock_aio:
+        mock_aio.post(f"{BASE_URL}/temperature", payload={})
+        await coordinator.async_set_temperature(21.5)
+
+    request_list = mock_aio.requests
+    assert len(request_list) == 1
+    request_call = list(request_list.values())[0][0]
+    assert request_call.kwargs["json"] == {"temperature": 21.5}
+
+
+@pytest.mark.asyncio
 async def test_coordinator_set_power(hass):
     """async_set_power posts to /power with correct JSON body."""
     from homeassistant.helpers.aiohttp_client import async_get_clientsession

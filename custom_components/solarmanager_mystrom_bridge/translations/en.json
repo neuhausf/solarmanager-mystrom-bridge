@@ -19,11 +19,13 @@
         "description": "Optionally configure a HA entity to keep in sync with the relay, and a power sensor to forward readings to the device.",
         "data": {
           "controlled_entity_id": "Controlled Entity (switch / input_boolean / light)",
-          "power_entity_id": "Power Sensor Entity"
+          "power_entity_id": "Power Sensor Entity",
+          "temperature_entity_id": "Temperature Sensor Entity"
         },
         "data_description": {
           "controlled_entity_id": "This entity is turned on/off whenever the virtual device's relay state changes (e.g. when Solar Manager controls the device). Leave empty to skip.",
-          "power_entity_id": "Sensor whose state (in W) is forwarded to the virtual device's /power endpoint. Leave empty to skip."
+          "power_entity_id": "Sensor whose state (in W) is forwarded to the virtual device's /power endpoint. Leave empty to skip.",
+          "temperature_entity_id": "Sensor whose state (in °C) is forwarded to the virtual device's /temperature endpoint. Leave empty to skip."
         }
       }
     },
@@ -42,12 +44,14 @@
         "data": {
           "scan_interval": "Polling Interval (seconds)",
           "controlled_entity_id": "Controlled Entity (switch / input_boolean / light)",
-          "power_entity_id": "Power Sensor Entity"
+          "power_entity_id": "Power Sensor Entity",
+          "temperature_entity_id": "Temperature Sensor Entity"
         },
         "data_description": {
           "scan_interval": "How often (in seconds) to poll the device for state updates.",
           "controlled_entity_id": "This entity is turned on/off whenever the virtual device relay state changes.",
-          "power_entity_id": "Sensor whose state (in W) is forwarded to the device's /power endpoint."
+          "power_entity_id": "Sensor whose state (in W) is forwarded to the device's /power endpoint.",
+          "temperature_entity_id": "Sensor whose state (in °C) is forwarded to the device's /temperature endpoint."
         }
       }
     }
