@@ -1,0 +1,55 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "SolarManager MyStrom Bridge konfigurieren",
+        "description": "Verbindung zu einem virtuellen MyStrom Energy Control Switch herstellen.",
+        "data": {
+          "name": "Name",
+          "host": "IP-Adresse / Hostname",
+          "scan_interval": "Abfrageintervall (Sekunden)"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder Hostname des virtuellen MyStrom-Geräts.",
+          "scan_interval": "Wie oft (in Sekunden) der Gerätestatus abgefragt wird. Standard: 5"
+        }
+      },
+      "power": {
+        "title": "Leistungsquelle (optional)",
+        "description": "Optional: Eine Home Assistant Sensor-Entität wählen, deren Zustand (in W) an den /power-Endpunkt des virtuellen Geräts weitergeleitet wird. Leer lassen zum Überspringen.",
+        "data": {
+          "power_entity_id": "Leistungssensor-Entität"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zum virtuellen MyStrom-Gerät fehlgeschlagen. Bitte IP-Adresse / Hostname prüfen.",
+      "unknown": "Unerwarteter Fehler. Bitte die Logs prüfen."
+    },
+    "abort": {
+      "already_configured": "Dieses Gerät ist bereits konfiguriert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SolarManager MyStrom Bridge Optionen",
+        "data": {
+          "scan_interval": "Abfrageintervall (Sekunden)",
+          "power_entity_id": "Leistungssensor-Entität"
+        },
+        "data_description": {
+          "scan_interval": "Wie oft (in Sekunden) der Gerätestatus abgefragt wird.",
+          "power_entity_id": "Sensor, dessen Zustand (in W) an den /power-Endpunkt weitergeleitet wird."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "power": {
+        "name": "Leistung"
+      }
+    }
+  }
+}

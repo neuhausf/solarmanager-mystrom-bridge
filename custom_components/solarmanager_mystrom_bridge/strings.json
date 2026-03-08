@@ -1,0 +1,55 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure SolarManager MyStrom Bridge",
+        "description": "Connect a virtual MyStrom Energy Control Switch device.",
+        "data": {
+          "name": "Name",
+          "host": "IP Address / Hostname",
+          "scan_interval": "Polling Interval (seconds)"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the virtual MyStrom device.",
+          "scan_interval": "How often (in seconds) to poll the device for state updates. Default: 5"
+        }
+      },
+      "power": {
+        "title": "Power Source (optional)",
+        "description": "Optionally select a Home Assistant sensor entity whose state (in W) will be forwarded to the virtual device's power endpoint. Leave empty to skip.",
+        "data": {
+          "power_entity_id": "Power Sensor Entity"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the virtual MyStrom device. Please check the IP address / hostname.",
+      "unknown": "Unexpected error occurred. Please check the logs."
+    },
+    "abort": {
+      "already_configured": "This device is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SolarManager MyStrom Bridge Options",
+        "data": {
+          "scan_interval": "Polling Interval (seconds)",
+          "power_entity_id": "Power Sensor Entity"
+        },
+        "data_description": {
+          "scan_interval": "How often (in seconds) to poll the device for state updates.",
+          "power_entity_id": "Sensor whose state (in W) is forwarded to the device's /power endpoint."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "power": {
+        "name": "Power"
+      }
+    }
+  }
+}
