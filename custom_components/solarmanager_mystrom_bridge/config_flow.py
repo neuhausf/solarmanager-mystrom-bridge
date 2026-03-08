@@ -40,7 +40,7 @@ class SolarManagerMyStromBridgeConfigFlow(
     VERSION = 1
 
     def __init__(self) -> None:
-        """Initialise flow."""
+        """Initialize flow."""
         self._user_input: dict[str, Any] = {}
 
     async def async_step_user(
@@ -127,7 +127,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options for SolarManager MyStrom Bridge."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialise options flow."""
+        """Initialize options flow."""
         self._config_entry = config_entry
 
     async def async_step_init(

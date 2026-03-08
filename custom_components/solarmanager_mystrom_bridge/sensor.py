@@ -41,7 +41,7 @@ class MyStromPowerSensor(CoordinatorEntity[MyStromBridgeCoordinator], SensorEnti
         coordinator: MyStromBridgeCoordinator,
         entry: ConfigEntry,
     ) -> None:
-        """Initialise the power sensor."""
+        """Initialize the power sensor."""
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_power"

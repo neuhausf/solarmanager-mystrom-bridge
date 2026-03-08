@@ -22,7 +22,7 @@ class MyStromBridgeCoordinator(DataUpdateCoordinator):
         host: str,
         scan_interval: int,
     ) -> None:
-        """Initialise the coordinator."""
+        """Initialize the coordinator."""
         super().__init__(
             hass,
             _LOGGER,

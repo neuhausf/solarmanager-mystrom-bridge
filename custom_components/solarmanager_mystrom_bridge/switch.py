@@ -34,7 +34,7 @@ class MyStromRelaySwitch(CoordinatorEntity[MyStromBridgeCoordinator], SwitchEnti
         coordinator: MyStromBridgeCoordinator,
         entry: ConfigEntry,
     ) -> None:
-        """Initialise the relay switch."""
+        """Initialize the relay switch."""
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_relay"
