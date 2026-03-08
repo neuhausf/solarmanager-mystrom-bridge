@@ -1,0 +1,1 @@
+# solarmanager-mystrom-bridge
