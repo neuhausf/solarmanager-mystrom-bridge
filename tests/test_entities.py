@@ -343,3 +343,56 @@ async def test_no_ha_to_mystrom_sync_without_controlled_entity(hass):
     await hass.async_block_till_done()
 
     coordinator.async_set_relay.assert_not_called()
+
+
+async def test_temperature_entity_forwards_to_coordinator(hass):
+    """When temperature entity changes, async_set_temperature is called with the new value."""
+    entry = _make_entry(hass, temperature_entity_id="sensor.room_temp")
+
+    hass.states.async_set("sensor.room_temp", "20.0")
+
+    await _setup_entry(hass, entry)
+
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator.async_set_temperature = AsyncMock()
+
+    hass.states.async_set("sensor.room_temp", "21.5")
+    await hass.async_block_till_done()
+
+    coordinator.async_set_temperature.assert_awaited_once_with(21.5)
+
+
+async def test_no_temperature_forward_without_temperature_entity(hass):
+    """async_set_temperature is not called when no temperature_entity_id is configured."""
+    entry = _make_entry(hass)  # no temperature_entity_id
+
+    await _setup_entry(hass, entry)
+
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator.async_set_temperature = AsyncMock()
+
+    hass.states.async_set("sensor.room_temp", "21.5")
+    await hass.async_block_till_done()
+
+    coordinator.async_set_temperature.assert_not_called()
+
+
+async def test_temperature_entity_invalid_value_logs_warning(hass, caplog):
+    """When temperature entity has an unparseable value, a warning is logged and no API call is made."""
+    import logging
+
+    entry = _make_entry(hass, temperature_entity_id="sensor.room_temp")
+
+    hass.states.async_set("sensor.room_temp", "20.0")
+
+    await _setup_entry(hass, entry)
+
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator.async_set_temperature = AsyncMock()
+
+    with caplog.at_level(logging.WARNING):
+        hass.states.async_set("sensor.room_temp", "not_a_number")
+        await hass.async_block_till_done()
+
+    coordinator.async_set_temperature.assert_not_called()
+    assert "Cannot parse temperature value" in caplog.text

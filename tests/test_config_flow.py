@@ -67,6 +67,28 @@ async def test_config_flow_with_power_entity(hass):
         assert result3["data"]["scan_interval"] == 10
 
 
+async def test_config_flow_with_temperature_entity(hass):
+    """Config flow stores temperature_entity_id when provided."""
+    with patch(
+        "custom_components.solarmanager_mystrom_bridge.config_flow._validate_host",
+        new=AsyncMock(return_value=None),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "user"}
+        )
+        result2 = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"name": NAME, "host": HOST, "scan_interval": 5},
+        )
+        result3 = await hass.config_entries.flow.async_configure(
+            result2["flow_id"],
+            {"temperature_entity_id": "sensor.room_temperature"},
+        )
+        assert result3["type"] == "create_entry"
+        assert result3["data"]["temperature_entity_id"] == "sensor.room_temperature"
+        assert "power_entity_id" not in result3["data"]
+
+
 async def test_config_flow_with_controlled_entity(hass):
     """Config flow stores controlled_entity_id when provided."""
     with patch(

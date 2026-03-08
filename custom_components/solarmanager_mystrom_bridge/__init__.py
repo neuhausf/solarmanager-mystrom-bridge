@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_state_change_event
 
-from .const import CONF_CONTROLLED_ENTITY_ID, CONF_POWER_ENTITY_ID, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import CONF_CONTROLLED_ENTITY_ID, CONF_POWER_ENTITY_ID, CONF_TEMPERATURE_ENTITY_ID, DEFAULT_SCAN_INTERVAL, DOMAIN
 from .coordinator import MyStromBridgeCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,6 +71,41 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
+
+    # Forward temperature readings from a HA entity to the virtual device's /temperature endpoint.
+    temperature_entity_id = entry.options.get(
+        CONF_TEMPERATURE_ENTITY_ID,
+        entry.data.get(CONF_TEMPERATURE_ENTITY_ID),
+    )
+    if temperature_entity_id:
+        _LOGGER.debug(
+            "Tracking temperature entity %s for device %s", temperature_entity_id, host
+        )
+
+        async def _on_temperature_state_changed(event):
+            new_state = event.data.get("new_state")
+            if new_state is None or new_state.state in (
+                None,
+                "unavailable",
+                "unknown",
+            ):
+                return
+            try:
+                temperature = float(new_state.state)
+            except (ValueError, TypeError):
+                _LOGGER.warning(
+                    "Cannot parse temperature value '%s' from entity %s",
+                    new_state.state,
+                    temperature_entity_id,
+                )
+                return
+            await coordinator.async_set_temperature(temperature)
+
+        entry.async_on_unload(
+            async_track_state_change_event(
+                hass, [temperature_entity_id], _on_temperature_state_changed
+            )
+        )
 
     # Synchronize a configured HA entity when the virtual device relay state changes.
     controlled_entity_id = entry.options.get(
