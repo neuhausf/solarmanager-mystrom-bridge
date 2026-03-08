@@ -105,7 +105,133 @@ async def test_power_sensor_value(hass):
     assert state.attributes["unit_of_measurement"] == "W"
 
 
-async def test_unload_entry(hass):
+async def test_relay_change_turns_off_controlled_entity(hass):
+    """When relay changes True→False, homeassistant.turn_off is called on controlled entity."""
+    entry = _make_entry(hass, controlled_entity_id="switch.living_room")
+
+    # Register a dummy switch entity so HA won't reject the service call.
+    hass.states.async_set("switch.living_room", "on")
+
+    calls = []
+
+    async def _mock_service(call):
+        calls.append(call)
+
+    hass.services.async_register("homeassistant", "turn_off", _mock_service)
+    hass.services.async_register("homeassistant", "turn_on", _mock_service)
+
+    # Set up with relay=True (initial state).
+    with patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator._async_update_data",
+        return_value={"power": 25.0, "relay": True},
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    # Simulate virtual device turning off (relay=False) on next poll.
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator.data = {"power": 0.0, "relay": False}
+    coordinator.async_set_updated_data(coordinator.data)
+    await hass.async_block_till_done()
+
+    assert any(
+        c.domain == "homeassistant" and c.service == "turn_off"
+        and c.data.get("entity_id") == "switch.living_room"
+        for c in calls
+    ), "Expected homeassistant.turn_off to be called on switch.living_room"
+
+
+async def test_relay_change_turns_on_controlled_entity(hass):
+    """When relay changes False→True, homeassistant.turn_on is called on controlled entity."""
+    entry = _make_entry(hass, controlled_entity_id="switch.living_room")
+
+    hass.states.async_set("switch.living_room", "off")
+
+    calls = []
+
+    async def _mock_service(call):
+        calls.append(call)
+
+    hass.services.async_register("homeassistant", "turn_on", _mock_service)
+    hass.services.async_register("homeassistant", "turn_off", _mock_service)
+
+    # Set up with relay=False (initial state).
+    with patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator._async_update_data",
+        return_value={"power": 0.0, "relay": False},
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    # Simulate virtual device turning on (relay=True) on next poll.
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator.async_set_updated_data({"power": 100.0, "relay": True})
+    await hass.async_block_till_done()
+
+    assert any(
+        c.domain == "homeassistant" and c.service == "turn_on"
+        and c.data.get("entity_id") == "switch.living_room"
+        for c in calls
+    ), "Expected homeassistant.turn_on to be called on switch.living_room"
+
+
+async def test_no_relay_sync_without_controlled_entity(hass):
+    """No homeassistant service call is made if no controlled_entity_id is configured."""
+    entry = _make_entry(hass)  # no controlled_entity_id
+
+    calls = []
+
+    async def _mock_service(call):
+        calls.append(call)
+
+    hass.services.async_register("homeassistant", "turn_off", _mock_service)
+    hass.services.async_register("homeassistant", "turn_on", _mock_service)
+
+    with patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator._async_update_data",
+        return_value={"power": 25.0, "relay": True},
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator.async_set_updated_data({"power": 0.0, "relay": False})
+    await hass.async_block_till_done()
+
+    assert calls == [], "Expected no homeassistant service calls without controlled entity"
+
+
+async def test_no_spurious_call_on_startup(hass):
+    """No homeassistant service call is made on first coordinator data (startup)."""
+    entry = _make_entry(hass, controlled_entity_id="switch.living_room")
+
+    hass.states.async_set("switch.living_room", "on")
+
+    calls = []
+
+    async def _mock_service(call):
+        calls.append(call)
+
+    hass.services.async_register("homeassistant", "turn_on", _mock_service)
+    hass.services.async_register("homeassistant", "turn_off", _mock_service)
+
+    with patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator._async_update_data",
+        return_value={"power": 25.0, "relay": True},
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    # No state change – relay stays True on the second poll.
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator.async_set_updated_data({"power": 30.0, "relay": True})
+    await hass.async_block_till_done()
+
+    assert calls == [], "Expected no service call when relay did not change"
     """Config entry unloads cleanly."""
     entry = _make_entry(hass)
     await _setup_entry(hass, entry)

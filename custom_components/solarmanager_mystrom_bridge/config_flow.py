@@ -20,7 +20,7 @@ from homeassistant.helpers.selector import (
     TextSelector,
 )
 
-from .const import CONF_POWER_ENTITY_ID, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import CONF_CONTROLLED_ENTITY_ID, CONF_POWER_ENTITY_ID, DEFAULT_SCAN_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -87,12 +87,18 @@ class SolarManagerMyStromBridgeConfigFlow(
     async def async_step_power(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
-        """Handle optional power-source configuration step."""
+        """Handle optional power-source and controlled-entity configuration step."""
         if user_input is not None:
             data = dict(self._user_input)
             power_entity_id = (user_input.get(CONF_POWER_ENTITY_ID) or "").strip()
             if power_entity_id:
                 data[CONF_POWER_ENTITY_ID] = power_entity_id
+
+            controlled_entity_id = (
+                user_input.get(CONF_CONTROLLED_ENTITY_ID) or ""
+            ).strip()
+            if controlled_entity_id:
+                data[CONF_CONTROLLED_ENTITY_ID] = controlled_entity_id
 
             await self.async_set_unique_id(data[CONF_HOST].lower())
             self._abort_if_unique_id_configured()
@@ -103,6 +109,11 @@ class SolarManagerMyStromBridgeConfigFlow(
             step_id="power",
             data_schema=vol.Schema(
                 {
+                    vol.Optional(CONF_CONTROLLED_ENTITY_ID): EntitySelector(
+                        EntitySelectorConfig(
+                            domain=["switch", "input_boolean", "light"]
+                        )
+                    ),
                     vol.Optional(CONF_POWER_ENTITY_ID): EntitySelector(
                         EntitySelectorConfig(domain=["sensor"])
                     ),
@@ -135,9 +146,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     ) -> config_entries.FlowResult:
         """Handle options."""
         if user_input is not None:
-            # Strip empty power entity
+            # Strip empty entities
             if not (user_input.get(CONF_POWER_ENTITY_ID) or "").strip():
                 user_input.pop(CONF_POWER_ENTITY_ID, None)
+            if not (user_input.get(CONF_CONTROLLED_ENTITY_ID) or "").strip():
+                user_input.pop(CONF_CONTROLLED_ENTITY_ID, None)
             return self.async_create_entry(title="", data=user_input)
 
         current_scan_interval = int(
@@ -150,6 +163,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             CONF_POWER_ENTITY_ID,
             self._config_entry.data.get(CONF_POWER_ENTITY_ID, ""),
         )
+        current_controlled_entity = self._config_entry.options.get(
+            CONF_CONTROLLED_ENTITY_ID,
+            self._config_entry.data.get(CONF_CONTROLLED_ENTITY_ID, ""),
+        )
+
+        controlled_selector = EntitySelector(
+            EntitySelectorConfig(domain=["switch", "input_boolean", "light"])
+        )
+        power_selector = EntitySelector(EntitySelectorConfig(domain=["sensor"]))
 
         schema: dict = {
             vol.Optional(
@@ -162,15 +184,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     mode=NumberSelectorMode.BOX,
                 )
             ),
+            vol.Optional(
+                CONF_CONTROLLED_ENTITY_ID,
+                **({"default": current_controlled_entity} if current_controlled_entity else {}),
+            ): controlled_selector,
+            vol.Optional(
+                CONF_POWER_ENTITY_ID,
+                **({"default": current_power_entity} if current_power_entity else {}),
+            ): power_selector,
         }
-        if current_power_entity:
-            schema[
-                vol.Optional(CONF_POWER_ENTITY_ID, default=current_power_entity)
-            ] = EntitySelector(EntitySelectorConfig(domain=["sensor"]))
-        else:
-            schema[vol.Optional(CONF_POWER_ENTITY_ID)] = EntitySelector(
-                EntitySelectorConfig(domain=["sensor"])
-            )
 
         return self.async_show_form(
             step_id="init",

@@ -15,10 +15,15 @@
         }
       },
       "power": {
-        "title": "Leistungsquelle (optional)",
-        "description": "Optional: Eine Home Assistant Sensor-Entität wählen, deren Zustand (in W) an den /power-Endpunkt des virtuellen Geräts weitergeleitet wird. Leer lassen zum Überspringen.",
+        "title": "Verbundene Entitäten (optional)",
+        "description": "Optional: Eine HA-Entität konfigurieren, die mit dem Relais synchronisiert wird, und einen Leistungssensor, dessen Wert an das Gerät weitergeleitet wird.",
         "data": {
+          "controlled_entity_id": "Gesteuerte Entität (switch / input_boolean / light)",
           "power_entity_id": "Leistungssensor-Entität"
+        },
+        "data_description": {
+          "controlled_entity_id": "Diese Entität wird ein- oder ausgeschaltet, wenn sich der Relaiszustand des virtuellen Geräts ändert (z.B. wenn Solar Manager das Gerät steuert). Leer lassen zum Überspringen.",
+          "power_entity_id": "Sensor, dessen Zustand (in W) an den /power-Endpunkt des virtuellen Geräts weitergeleitet wird. Leer lassen zum Überspringen."
         }
       }
     },
@@ -36,10 +41,12 @@
         "title": "SolarManager MyStrom Bridge Optionen",
         "data": {
           "scan_interval": "Abfrageintervall (Sekunden)",
+          "controlled_entity_id": "Gesteuerte Entität (switch / input_boolean / light)",
           "power_entity_id": "Leistungssensor-Entität"
         },
         "data_description": {
           "scan_interval": "Wie oft (in Sekunden) der Gerätestatus abgefragt wird.",
+          "controlled_entity_id": "Diese Entität wird ein- oder ausgeschaltet, wenn sich der Relaiszustand des virtuellen Geräts ändert.",
           "power_entity_id": "Sensor, dessen Zustand (in W) an den /power-Endpunkt weitergeleitet wird."
         }
       }

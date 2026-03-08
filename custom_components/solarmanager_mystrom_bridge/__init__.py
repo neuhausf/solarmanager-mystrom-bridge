@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_state_change_event
 
-from .const import CONF_POWER_ENTITY_ID, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import CONF_CONTROLLED_ENTITY_ID, CONF_POWER_ENTITY_ID, DEFAULT_SCAN_INTERVAL, DOMAIN
 from .coordinator import MyStromBridgeCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,6 +71,55 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
+
+    # Synchronize a configured HA entity when the virtual device relay state changes.
+    controlled_entity_id = entry.options.get(
+        CONF_CONTROLLED_ENTITY_ID,
+        entry.data.get(CONF_CONTROLLED_ENTITY_ID),
+    )
+    if controlled_entity_id:
+        _LOGGER.debug(
+            "Will synchronize relay state to entity %s for device %s",
+            controlled_entity_id,
+            host,
+        )
+        # Seed with current relay state so startup does not trigger a spurious call.
+        _previous_relay: bool | None = (
+            bool(coordinator.data.get("relay"))
+            if coordinator.data and coordinator.data.get("relay") is not None
+            else None
+        )
+
+        async def _on_relay_changed() -> None:
+            nonlocal _previous_relay
+            if coordinator.data is None:
+                return
+            relay = coordinator.data.get("relay")
+            if relay is None:
+                return
+            relay_on = bool(relay)
+            if relay_on == _previous_relay:
+                return
+            _previous_relay = relay_on
+            _LOGGER.debug(
+                "Relay on %s changed to %s – calling homeassistant.%s on %s",
+                host,
+                relay_on,
+                "turn_on" if relay_on else "turn_off",
+                controlled_entity_id,
+            )
+            await hass.services.async_call(
+                "homeassistant",
+                "turn_on" if relay_on else "turn_off",
+                {"entity_id": controlled_entity_id},
+                blocking=False,
+            )
+
+        entry.async_on_unload(
+            coordinator.async_add_listener(
+                lambda: hass.async_create_task(_on_relay_changed())
+            )
+        )
 
     return True
 
