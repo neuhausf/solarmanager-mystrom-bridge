@@ -70,6 +70,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
         )
 
+        # Push the current power value immediately on startup.
+        initial_power_state = hass.states.get(power_entity_id)
+        if initial_power_state is not None and initial_power_state.state not in (
+            None,
+            "unavailable",
+            "unknown",
+        ):
+            try:
+                initial_power = float(initial_power_state.state)
+                hass.async_create_task(coordinator.async_set_power(initial_power))
+            except (ValueError, TypeError):
+                _LOGGER.warning(
+                    "Cannot parse initial power value '%s' from entity %s",
+                    initial_power_state.state,
+                    power_entity_id,
+                )
+
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
 
     # Forward temperature readings from a HA entity to the virtual device's /temperature endpoint.
@@ -106,6 +123,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 hass, [temperature_entity_id], _on_temperature_state_changed
             )
         )
+
+        # Push the current temperature value immediately on startup.
+        initial_temperature_state = hass.states.get(temperature_entity_id)
+        if initial_temperature_state is not None and initial_temperature_state.state not in (
+            None,
+            "unavailable",
+            "unknown",
+        ):
+            try:
+                initial_temperature = float(initial_temperature_state.state)
+                hass.async_create_task(coordinator.async_set_temperature(initial_temperature))
+            except (ValueError, TypeError):
+                _LOGGER.warning(
+                    "Cannot parse initial temperature value '%s' from entity %s",
+                    initial_temperature_state.state,
+                    temperature_entity_id,
+                )
 
     # Synchronize a configured HA entity when the virtual device relay state changes.
     controlled_entity_id = entry.options.get(

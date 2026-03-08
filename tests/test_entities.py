@@ -1,6 +1,7 @@
 """Tests for switch and sensor entities."""
 from __future__ import annotations
 
+import logging
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -379,8 +380,6 @@ async def test_no_temperature_forward_without_temperature_entity(hass):
 
 async def test_temperature_entity_invalid_value_logs_warning(hass, caplog):
     """When temperature entity has an unparseable value, a warning is logged and no API call is made."""
-    import logging
-
     entry = _make_entry(hass, temperature_entity_id="sensor.room_temp")
 
     hass.states.async_set("sensor.room_temp", "20.0")
@@ -396,3 +395,130 @@ async def test_temperature_entity_invalid_value_logs_warning(hass, caplog):
 
     coordinator.async_set_temperature.assert_not_called()
     assert "Cannot parse temperature value" in caplog.text
+
+
+async def test_power_entity_initial_push_on_load(hass):
+    """When the power entity has a valid state at load time, async_set_power is called immediately."""
+    entry = _make_entry(hass, power_entity_id="sensor.solar_power")
+
+    hass.states.async_set("sensor.solar_power", "42.0")
+
+    with patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator._async_update_data",
+        return_value={"power": 25.0, "relay": True},
+    ), patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator.async_set_power",
+        new_callable=AsyncMock,
+    ) as mock_set_power:
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    mock_set_power.assert_awaited_with(42.0)
+
+
+async def test_temperature_entity_initial_push_on_load(hass):
+    """When the temperature entity has a valid state at load time, async_set_temperature is called immediately."""
+    entry = _make_entry(hass, temperature_entity_id="sensor.room_temp")
+
+    hass.states.async_set("sensor.room_temp", "19.5")
+
+    with patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator._async_update_data",
+        return_value={"power": 25.0, "relay": True},
+    ), patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator.async_set_temperature",
+        new_callable=AsyncMock,
+    ) as mock_set_temperature:
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    mock_set_temperature.assert_awaited_with(19.5)
+
+
+async def test_power_entity_no_initial_push_when_unavailable(hass):
+    """When the power entity is unavailable at load time, async_set_power is NOT called."""
+    entry = _make_entry(hass, power_entity_id="sensor.solar_power")
+
+    hass.states.async_set("sensor.solar_power", "unavailable")
+
+    with patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator._async_update_data",
+        return_value={"power": 25.0, "relay": True},
+    ), patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator.async_set_power",
+        new_callable=AsyncMock,
+    ) as mock_set_power:
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    mock_set_power.assert_not_awaited()
+
+
+async def test_temperature_entity_no_initial_push_when_unavailable(hass):
+    """When the temperature entity is unavailable at load time, async_set_temperature is NOT called."""
+    entry = _make_entry(hass, temperature_entity_id="sensor.room_temp")
+
+    hass.states.async_set("sensor.room_temp", "unavailable")
+
+    with patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator._async_update_data",
+        return_value={"power": 25.0, "relay": True},
+    ), patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator.async_set_temperature",
+        new_callable=AsyncMock,
+    ) as mock_set_temperature:
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    mock_set_temperature.assert_not_awaited()
+
+
+async def test_power_entity_no_initial_push_when_entity_missing(hass):
+    """When the power entity does not exist at load time, async_set_power is NOT called."""
+    entry = _make_entry(hass, power_entity_id="sensor.solar_power")
+    # Do NOT set a state for sensor.solar_power – entity does not exist yet.
+
+    with patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator._async_update_data",
+        return_value={"power": 25.0, "relay": True},
+    ), patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator.async_set_power",
+        new_callable=AsyncMock,
+    ) as mock_set_power:
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    mock_set_power.assert_not_awaited()
+
+
+async def test_power_entity_no_initial_push_invalid_value_logs_warning(hass, caplog):
+    """When the power entity has an unparseable initial state, a warning is logged and no push is made."""
+    entry = _make_entry(hass, power_entity_id="sensor.solar_power")
+
+    hass.states.async_set("sensor.solar_power", "not_a_number")
+
+    with patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator._async_update_data",
+        return_value={"power": 25.0, "relay": True},
+    ), patch(
+        "custom_components.solarmanager_mystrom_bridge.coordinator."
+        "MyStromBridgeCoordinator.async_set_power",
+        new_callable=AsyncMock,
+    ) as mock_set_power:
+        with caplog.at_level(logging.WARNING):
+            assert await hass.config_entries.async_setup(entry.entry_id)
+            await hass.async_block_till_done()
+
+    mock_set_power.assert_not_awaited()
+    assert "Cannot parse initial power value" in caplog.text
