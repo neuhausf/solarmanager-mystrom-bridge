@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure SolarManager MyStrom Bridge",
+        "description": "Connect a virtual MyStrom Energy Control Switch device.",
+        "data": {
+          "name": "Name",
+          "host": "IP Address / Hostname",
+          "scan_interval": "Polling Interval (seconds)"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the virtual MyStrom device.",
+          "scan_interval": "How often (in seconds) to poll the device for state updates. Default: 5"
+        }
+      },
+      "power": {
+        "title": "Connected Entities (optional)",
+        "description": "Optionally configure a HA entity to keep in sync with the relay, and a power sensor to forward readings to the device.",
+        "data": {
+          "controlled_entity_id": "Controlled Entity (switch / input_boolean / light)",
+          "power_entity_id": "Power Sensor Entity"
+        },
+        "data_description": {
+          "controlled_entity_id": "This entity is turned on/off whenever the virtual device's relay state changes (e.g. when Solar Manager controls the device). Leave empty to skip.",
+          "power_entity_id": "Sensor whose state (in W) is forwarded to the virtual device's /power endpoint. Leave empty to skip."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the virtual MyStrom device. Please check the IP address / hostname.",
+      "unknown": "Unexpected error occurred. Please check the logs."
+    },
+    "abort": {
+      "already_configured": "This device is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SolarManager MyStrom Bridge Options",
+        "data": {
+          "scan_interval": "Polling Interval (seconds)",
+          "controlled_entity_id": "Controlled Entity (switch / input_boolean / light)",
+          "power_entity_id": "Power Sensor Entity"
+        },
+        "data_description": {
+          "scan_interval": "How often (in seconds) to poll the device for state updates.",
+          "controlled_entity_id": "This entity is turned on/off whenever the virtual device relay state changes.",
+          "power_entity_id": "Sensor whose state (in W) is forwarded to the device's /power endpoint."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "power": {
+        "name": "Power"
+      }
+    }
+  }
+}
